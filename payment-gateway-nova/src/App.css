@@ -1,0 +1,87 @@
+/* App.css */
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.App {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.payment-container {
+  background: #fff;
+  padding: 40px 50px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 350px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.payment-container:hover {
+  transform: translateY(-5px);
+}
+
+.payment-container h2 {
+  margin-bottom: 30px;
+  color: #333;
+  font-size: 1.8rem;
+}
+
+.payment-container input {
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.payment-container input:focus {
+  border-color: #6e8efb;
+  box-shadow: 0 0 8px rgba(110, 142, 251, 0.4);
+  outline: none;
+}
+
+.payment-container button {
+  width: 100%;
+  padding: 12px;
+  background: #6e8efb;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.payment-container button:hover {
+  background: #5a72d1;
+}
+
+.message {
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.message.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
