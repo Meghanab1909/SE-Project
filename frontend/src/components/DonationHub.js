@@ -39,7 +39,6 @@ function UserOrb({ user, position }) {
           color="white"
           anchorX="center"
           anchorY="middle"
-          font="/fonts/SpaceGrotesk-Bold.ttf"
         >
           {user.initials}
         </Text>
