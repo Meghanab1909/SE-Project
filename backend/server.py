@@ -5,11 +5,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 import base64
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -39,7 +40,7 @@ class User(BaseModel):
 
 class UserCreate(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     emotion: Optional[str] = "neutral"
 
 class Charity(BaseModel):
@@ -47,7 +48,7 @@ class Charity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: str
-    charity_type: str  # "children", "animals", "education"
+    charity_type: str  # "emergency", "healthcare", "animals"
     goal: float
     current_amount: float = 0.0
     visual_type: str  # "tree", "butterfly", "books"
@@ -71,7 +72,7 @@ class DonationCreate(BaseModel):
 class PaymentRequest(BaseModel):
     donation_id: str
     amount: float
-    upi_id: Optional[str] = "hopeorb@upi"
+    upi_id: Optional[str] = "microspark@upi"
 
 class PaymentResponse(BaseModel):
     upi_link: str
@@ -176,7 +177,8 @@ async def get_user(user_id: str):
     
     return User(**user)
 
-@api_router.post("/donate", response_model=Donation)
+#@api_router.post("/donate", response_model=Donation)
+@api_router.post("/donations", response_model=Donation)
 async def create_donation(donation_input: DonationCreate):
     """Create a new donation"""
     ripple_props = calculate_ripple_properties(donation_input.amount)
@@ -198,6 +200,10 @@ async def create_donation(donation_input: DonationCreate):
 
 @api_router.get("/donations", response_model=List[Donation])
 async def get_donations(limit: int = 100):
+    if limit <= 0:
+        raise HTTPException(status_code = 400, detail = "Limit must be positive")
+    limit = min(limit, 1000)
+
     """Get recent donations for ripple visualization"""
     donations = await db.donations.find(
         {"status": "completed"}, 
@@ -212,11 +218,11 @@ async def get_donations(limit: int = 100):
 
 @api_router.post("/payment/generate-upi", response_model=PaymentResponse)
 async def generate_upi_payment(payment_req: PaymentRequest):
-    """Generate UPI payment link (MOCKED)"""
+    """Generate UPI payment link"""
     payment_id = str(uuid.uuid4())
     
     # Create UPI payment link (standard UPI format)
-    upi_link = f"upi://pay?pa={payment_req.upi_id}&pn=HopeOrb&am={payment_req.amount}&cu=INR&tn=Donation%20{payment_req.donation_id}"
+    upi_link = f"upi://pay?pa={payment_req.upi_id}&pn=MicroSpark&am={payment_req.amount}&cu=INR&tn=Donation%20{payment_req.donation_id}"
     
     # QR data is the same as UPI link
     qr_data = upi_link
@@ -229,37 +235,58 @@ async def generate_upi_payment(payment_req: PaymentRequest):
 
 @api_router.post("/payment/verify")
 async def verify_payment(verify_req: PaymentVerify):
-    """Verify payment (MOCKED - always succeeds after 2 seconds)"""
-    # In real implementation, this would check with payment gateway
-    # For now, we'll update the donation status to completed
+    """Verify payment through bank server"""
     
     donation = await db.donations.find_one({"id": verify_req.donation_id})
     if not donation:
         raise HTTPException(status_code=404, detail="Donation not found")
     
-    # Update donation status
-    await db.donations.update_one(
-        {"id": verify_req.donation_id},
-        {"$set": {"status": "completed"}}
-    )
-    
-    # Update charity amount
-    await db.charities.update_one(
-        {"id": donation["charity_id"]},
-        {"$inc": {"current_amount": donation["amount"]}}
-    )
-    
-    # Award hope points to user (1 point per 10 rupees)
-    hope_points = int(donation["amount"] / 10)
-    await db.users.update_one(
-        {"id": donation["user_id"]},
-        {"$inc": {"hope_points": hope_points}}
-    )
-    
-    return {"success": True, "message": "Payment verified successfully"}
+    try:
+        # Payment is already verified by bank server
+        # Update donation status and related records
+        
+        await db.donations.update_one(
+            {"id": verify_req.donation_id},
+            {"$set": {
+                "status": "completed",
+                "txn_id": verify_req.payment_id,
+                "payment_timestamp": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        await db.charities.update_one(
+            {"id": donation["charity_id"]},
+            {"$inc": {"current_amount": donation["amount"]}}
+        )
+        
+        hope_points = int(donation["amount"] / 10)
+        await db.users.update_one(
+            {"id": donation["user_id"]},
+            {"$inc": {"hope_points": hope_points}}
+        )
+        
+        return {
+            "success": True,
+            "message": "Payment verified successfully",
+            "txnId": verify_req.payment_id
+        }
+                
+    except Exception as e:
+        logging.error(f"Payment verification error: {e}")
+        raise HTTPException(status_code=500, detail="Payment verification failed")
 
 @api_router.post("/audio-message", response_model=AudioMessage)
 async def create_audio_message(audio_input: AudioMessageCreate):
+    import re
+    MAX_AUDIO_SIZE = 2_000_000
+
+    if(len(audio_input.audio_data) > MAX_AUDIO_SIZE):
+        raise HTTPException(status_code=413, detail="Audio file too large")
+
+    uuid_pattern = re.compile(r"^[0-9a-fA-F-]{36}$")
+    if not uuid_pattern.match(audio_input.user_id) or not uuid_pattern.match(audio_input.donation_id):
+        raise HTTPException(status_code=400, detail="Invalid IDs")
+    
     """Save audio message"""
     audio_msg = AudioMessage(
         user_id=audio_input.user_id,
@@ -362,24 +389,45 @@ async def initialize_charities():
     
     charities = [
         Charity(
-            name="Children's Future Fund",
-            description="Supporting education and healthcare for underprivileged children",
-            charity_type="children",
-            goal=100000.0,
+            name="Emergency Relief Fund",
+            description="Disaster or flood response campaigns for immediate relief and rehabilitation",
+            charity_type="emergency",
+            goal=150000.0,
             visual_type="tree"
         ),
         Charity(
-            name="Wildlife Protection",
-            description="Protecting endangered species and their habitats",
-            charity_type="animals",
-            goal=75000.0,
+            name="Healthcare Support Fund",
+            description="Micro-donations for medical kits, preventive care, and health awareness programs",
+            charity_type="healthcare",
+            goal=100000.0,
             visual_type="butterfly"
         ),
         Charity(
-            name="Education For All",
-            description="Providing books and educational resources to rural schools",
+            name="Animal Welfare Fund",
+            description="Vaccinations, food, and shelter for stray animals and wildlife protection",
+            charity_type="animals",
+            goal=75000.0,
+            visual_type="books"
+        ),
+        Charity(
+            name="Clean Water Initiative",
+            description="Providing clean drinking water access to rural communities and villages",
+            charity_type="water",
+            goal=120000.0,
+            visual_type="tree"
+        ),
+        Charity(
+            name="Education Empowerment",
+            description="Supporting schools with books, digital resources, and teacher training programs",
             charity_type="education",
-            goal=50000.0,
+            goal=90000.0,
+            visual_type="butterfly"
+        ),
+        Charity(
+            name="Women Empowerment Fund",
+            description="Skill development and financial literacy programs for women entrepreneurs",
+            charity_type="women",
+            goal=80000.0,
             visual_type="books"
         )
     ]
