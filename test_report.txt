@@ -1,0 +1,66 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\HP\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation
+plugins: anyio-4.11.0, hypothesis-6.142.4, cov-7.0.0
+collecting ... collected 18 items
+
+tests/test_api_validation.py::test_register_validation_happy_and_edge PASSED [  5%]
+tests/test_api_validation.py::test_init_charities_idempotent_and_list PASSED [ 11%]
+tests/test_api_validation.py::test_create_donation_and_limits PASSED     [ 16%]
+tests/test_api_validation.py::test_payment_generate_and_verify_idempotent PASSED [ 22%]
+tests/test_api_validation.py::test_audio_upload_validation PASSED        [ 27%]
+tests/test_security_negative.py::test_mass_assignment_blocked_on_donation PASSED [ 33%]
+tests/test_security_negative.py::test_nosql_injection_patterns_are_not_interpreted PASSED [ 38%]
+tests/test_security_negative.py::test_limit_clamped_and_negative_rejected PASSED [ 44%]
+tests/test_security_negative.py::test_audio_upload_path_traversal_and_oversize PASSED [ 50%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[0.99-#4ECDC4] PASSED [ 55%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[10-#4ECDC4] PASSED [ 61%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[49.99-#4ECDC4] PASSED [ 66%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[50-#FFD93D] PASSED [ 72%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[99.99-#FFD93D] PASSED [ 77%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[100-#FF6B9D] PASSED [ 83%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[499.99-#FF6B9D] PASSED [ 88%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[500-#9D4EDD] PASSED [ 94%]
+tests/test_unit_ripple.py::test_calculate_ripple_properties[999999-#9D4EDD] PASSED [100%]
+
+============================== warnings summary ===============================
+tests\test_api_validation.py:22
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_api_validation.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(1)
+
+tests\test_api_validation.py:38
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_api_validation.py:38: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(2)
+
+tests\test_api_validation.py:47
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_api_validation.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(3)
+
+tests\test_api_validation.py:59
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_api_validation.py:59: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(4)
+
+tests\test_api_validation.py:73
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_api_validation.py:73: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(5)
+
+tests\test_security_negative.py:16
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_security_negative.py:16: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(10)
+
+tests\test_security_negative.py:33
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_security_negative.py:33: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(11)
+
+tests\test_security_negative.py:39
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_security_negative.py:39: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(12)
+
+tests\test_security_negative.py:46
+  C:\Users\HP\OneDrive\Desktop\PES\SEM 5\SE\Project\SE-micro-donation\tests\test_security_negative.py:46: PytestUnknownMarkWarning: Unknown pytest.mark.order - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.order(13)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 18 passed, 9 warnings in 2.12s ========================
