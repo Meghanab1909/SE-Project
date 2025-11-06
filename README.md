@@ -1,4 +1,4 @@
-# HopeOrb - Immersive 3D Donation Platform 🌟
+# MicroSpark - Immersive 3D Donation Platform 🌟
 
 An immersive 3D web application for micro-donations featuring real-time ripple effects, 3D visualizations, and gamified giving experiences.
 
@@ -60,9 +60,12 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your MongoDB connection string
 
-# Run server
+# Run platform server
 uvicorn server:app --reload --host 0.0.0.0 --port 8000
 \`\`\`
+
+# In another terminal, run the bank server
+node server.js
 
 ### Frontend Setup
 
@@ -92,6 +95,7 @@ The app will open at \`http://localhost:3000\`
 hopeorb/
 ├── backend/
 │   ├── server.py          # FastAPI application
+│   ├── server.js          # Bank server  
 │   ├── requirements.txt   # Python dependencies
 │   └── .env.example      # Environment variables template
 ├── frontend/
@@ -145,7 +149,7 @@ MIT License - Feel free to use for personal or commercial projects
 
 ## 👨‍💻 Author
 
-Created by Rakshitha with ❤️
+Created by SE Team No. 4 of PESU ECC with ❤️
 
 ## 🤝 Contributing
 
@@ -171,3 +175,4 @@ For questions or support, please open an issue on GitHub.
 ---
 
 ⭐ Star this repo if you find it helpful!
+
