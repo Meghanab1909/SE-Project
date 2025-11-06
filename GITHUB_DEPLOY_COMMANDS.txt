@@ -1,0 +1,39 @@
+=================================================================
+📋 COPY AND PASTE THESE COMMANDS TO DEPLOY TO GITHUB
+=================================================================
+
+# Step 1: Navigate to the project directory
+cd /app
+
+# Step 2: Initialize git (if not already)
+git init
+
+# Step 3: Add all files
+git add .
+
+# Step 4: Commit with a message
+git commit -m "Initial commit: HopeOrb 3D donation platform with immersive experience"
+
+# Step 5: Add your GitHub repository
+git remote add origin https://github.com/Rakshitha-Raksta/3D-donation-paltform.git
+
+# Step 6: Push to GitHub (main branch)
+git branch -M main
+git push -u origin main
+
+=================================================================
+IF YOU GET AN ERROR ABOUT EXISTING REMOTE:
+=================================================================
+git remote remove origin
+git remote add origin https://github.com/Rakshitha-Raksta/3D-donation-paltform.git
+git push -u origin main
+
+=================================================================
+IF YOU NEED TO FORCE PUSH (use with caution):
+=================================================================
+git push -u origin main --force
+
+=================================================================
+✅ After successful push, visit:
+https://github.com/Rakshitha-Raksta/3D-donation-paltform
+=================================================================
