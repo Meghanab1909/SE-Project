@@ -192,6 +192,14 @@ export default function TimelineGarden({ user, onLogout }) {
           </div>
           <div className="flex gap-3">
             <Button
+              onClick={() => navigate('/about')}
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              data-testid="about-btn"
+            >
+              ℹ️ About
+            </Button>
+            <Button
               onClick={() => navigate('/hub')}
               variant="outline"
               className="bg-white/10 hover:bg-white/20 text-white border-white/20"

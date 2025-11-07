@@ -3,14 +3,15 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Box, OrbitControls, Text } from '@react-three/drei';
 import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Rotating QR Cube
+// Rotating QR Cube (keep existing code)
 function QRCube({ qrData, isPaying }) {
   const meshRef = useRef();
   const [hoveredFace, setHoveredFace] = useState(null);
@@ -21,7 +22,6 @@ function QRCube({ qrData, isPaying }) {
         meshRef.current.rotation.y += 0.01;
       }
       
-      // Pulse animation when paying
       if (isPaying) {
         const scale = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1;
         meshRef.current.scale.set(scale, scale, scale);
@@ -47,7 +47,6 @@ function QRCube({ qrData, isPaying }) {
         roughness={0.2}
       />
       
-      {/* Payment icons on faces */}
       {[0, 1, 2, 3, 4, 5].map((face) => {
         const icons = ['📱 GPay', '🟣 PhonePe', '💳 UPI', '💸 Pay', '✨ QR', '🎲 Scan'];
         return (
@@ -80,6 +79,9 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
   const [paymentData, setPaymentData] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [upiId, setUpiId] = useState('demo@ybl');
+  const [pin, setPin] = useState('1234');
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     generatePayment();
@@ -92,29 +94,35 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
         amount: donation.amount
       });
       setPaymentData(response.data);
-      
-      // Auto-verify after 3 seconds (mocked)
-      setTimeout(() => {
-        verifyPayment(response.data.payment_id);
-      }, 3000);
     } catch (error) {
       toast.error('Failed to generate payment');
       console.error('Payment generation error:', error);
     }
   };
 
-  const verifyPayment = async (paymentId) => {
+  const verifyPayment = async () => {
+    if (!upiId || !pin) {
+      toast.error('Please enter UPI ID and PIN');
+      return;
+    }
+
     setIsVerifying(true);
     try {
-      await axios.post(`${API}/payment/verify`, {
+      const response = await axios.post(`${API}/payment/verify`, {
         donation_id: donation.id,
-        payment_id: paymentId || paymentData.payment_id
+        payment_id: paymentData.payment_id,
+        upi_id: upiId,
+        pin: pin
       });
       
-      toast.success('Payment verified! 🎉');
-      setTimeout(() => {
-        onComplete();
-      }, 1000);
+      if (response.data.success) {
+        toast.success('Payment successful! 🎉');
+        setTimeout(() => {
+          onComplete();
+        }, 1000);
+      } else {
+        toast.error(response.data.message || 'Payment failed');
+      }
     } catch (error) {
       toast.error('Payment verification failed');
       console.error('Payment verification error:', error);
@@ -126,7 +134,6 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-4xl h-[600px] mx-4">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
@@ -152,13 +159,13 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
             
             <div className="absolute bottom-4 left-4 right-4 text-center">
               <p className="text-white text-sm">
-                {isVerifying ? 'Verifying payment...' : 'Rotate to explore payment options'}
+                {isVerifying ? 'Processing payment...' : 'Rotate to explore payment options'}
               </p>
             </div>
           </div>
 
           {/* Payment Info */}
-          <div className="glass rounded-2xl p-6 flex flex-col">
+          <div className="glass rounded-2xl p-6 flex flex-col overflow-y-auto">
             <h2 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: 'Space Grotesk' }}>
               Complete Payment
             </h2>
@@ -169,58 +176,110 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
                 <div className="text-white text-3xl font-bold">₹{donation.amount}</div>
               </div>
 
-              <div className="bg-white/5 rounded-xl p-4">
-                <div className="text-gray-300 text-sm mb-2">Payment Methods</div>
-                <div className="flex gap-2">
-                  <div className="px-3 py-2 bg-purple-500/20 rounded-lg text-white text-sm">
-                    📱 Google Pay
+              {!showPaymentForm ? (
+                <>
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <div className="text-gray-300 text-sm mb-2">Payment Methods</div>
+                    <div className="flex gap-2">
+                      <div className="px-3 py-2 bg-purple-500/20 rounded-lg text-white text-sm">
+                        📱 Google Pay
+                      </div>
+                      <div className="px-3 py-2 bg-pink-500/20 rounded-lg text-white text-sm">
+                        🟣 PhonePe
+                      </div>
+                      <div className="px-3 py-2 bg-blue-500/20 rounded-lg text-white text-sm">
+                        💳 UPI
+                      </div>
+                    </div>
                   </div>
-                  <div className="px-3 py-2 bg-pink-500/20 rounded-lg text-white text-sm">
-                    🟣 PhonePe
-                  </div>
-                  <div className="px-3 py-2 bg-blue-500/20 rounded-lg text-white text-sm">
-                    💳 UPI
-                  </div>
-                </div>
-              </div>
 
-              {/* QR Code */}
-              {paymentData && (
-                <div className="bg-white/5 rounded-xl p-4">
-                  <button
-                    onClick={() => setShowQR(!showQR)}
-                    className="text-purple-300 text-sm hover:text-purple-200 mb-2"
-                    data-testid="show-qr-btn"
-                  >
-                    {showQR ? 'Hide' : 'Show'} QR Code
-                  </button>
-                  
-                  {showQR && (
-                    <div className="flex justify-center p-4 bg-white rounded-xl">
-                      <QRCodeCanvas 
-                        value={paymentData.qr_data} 
-                        size={200}
-                        level="H"
-                        data-testid="payment-qr-code"
-                      />
+                  {paymentData && (
+                    <div className="bg-white/5 rounded-xl p-4">
+                      <button
+                        onClick={() => setShowQR(!showQR)}
+                        className="text-purple-300 text-sm hover:text-purple-200 mb-2"
+                        data-testid="show-qr-btn"
+                      >
+                        {showQR ? 'Hide' : 'Show'} QR Code
+                      </button>
+                      
+                      {showQR && (
+                        <div className="flex justify-center p-4 bg-white rounded-xl">
+                          <QRCodeCanvas 
+                            value={paymentData.qr_data} 
+                            size={200}
+                            level="H"
+                            data-testid="payment-qr-code"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+
+                  <div className="text-gray-400 text-xs text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    💳 Demo Account: UPI: demo@ybl | PIN: 1234 | Balance: ₹10,000
+                  </div>
+
+                  <Button
+                    onClick={() => setShowPaymentForm(true)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl"
+                  >
+                    Pay with UPI 💳
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">
+                        UPI ID
+                      </label>
+                      <Input
+                        type="text"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        placeholder="yourname@upi"
+                        className="w-full bg-white/10 border-white/20 text-white"
+                        data-testid="upi-id-input"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">
+                        UPI PIN
+                      </label>
+                      <Input
+                        type="password"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value)}
+                        placeholder="Enter 4-digit PIN"
+                        maxLength={4}
+                        className="w-full bg-white/10 border-white/20 text-white"
+                        data-testid="upi-pin-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setShowPaymentForm(false)}
+                      variant="outline"
+                      className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={verifyPayment}
+                      disabled={isVerifying}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
+                      data-testid="verify-payment-btn"
+                    >
+                      {isVerifying ? 'Processing...' : 'Confirm Payment ✓'}
+                    </Button>
+                  </div>
+                </>
               )}
-
-              <div className="text-gray-400 text-xs text-center p-3 bg-yellow-500/10 rounded-lg">
-                ⚠️ This is a DEMO. Payment verification is mocked.
-              </div>
             </div>
-
-            <Button
-              onClick={() => verifyPayment()}
-              disabled={isVerifying}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl mt-4"
-              data-testid="verify-payment-btn"
-            >
-              {isVerifying ? 'Verifying...' : 'Simulate Payment ✨'}
-            </Button>
           </div>
         </div>
       </div>

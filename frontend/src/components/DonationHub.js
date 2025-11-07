@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text, Float } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 import { toast } from 'sonner';
 import PaymentCube from './PaymentCube';
 import ImpactVisualizer from './ImpactVisualizer';
@@ -50,7 +50,6 @@ function UserOrb({ user, position }) {
 // Water Surface with Ripples
 function WaterSurface({ ripples }) {
   const meshRef = useRef();
-  const { size } = useThree();
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -71,7 +70,6 @@ function WaterSurface({ ripples }) {
         />
       </mesh>
       
-      {/* Ripples */}
       {ripples.map((ripple) => (
         <Ripple key={ripple.id} ripple={ripple} />
       ))}
@@ -115,12 +113,10 @@ function ProgressRing({ charity, position }) {
   return (
     <group position={position}>
       <Float speed={1.5} floatIntensity={0.3}>
-        {/* Background ring */}
         <mesh rotation={[0, 0, 0]}>
           <torusGeometry args={[1, 0.1, 16, 100]} />
           <meshStandardMaterial color="#2a2a3e" />
         </mesh>
-        {/* Progress ring */}
         <mesh rotation={[0, 0, 0]}>
           <torusGeometry args={[1, 0.12, 16, 100, progress * Math.PI * 2]} />
           <meshStandardMaterial 
@@ -189,8 +185,7 @@ export default function DonationHub({ user, onLogout }) {
     }
 
     try {
-      // Create donation
-      const donationRes = await axios.post(`${API}/donate`, {
+      const donationRes = await axios.post(`${API}/donations`, {
         user_id: user.id,
         charity_id: selectedCharity.id,
         amount
@@ -199,7 +194,6 @@ export default function DonationHub({ user, onLogout }) {
       setCurrentDonation(donationRes.data);
       setShowPayment(true);
       
-      // Create ripple effect
       createRipple(donationRes.data);
     } catch (error) {
       toast.error('Failed to create donation');
@@ -218,7 +212,6 @@ export default function DonationHub({ user, onLogout }) {
     
     setRipples(prev => [...prev, newRipple]);
     
-    // Remove ripple after animation
     setTimeout(() => {
       setRipples(prev => prev.filter(r => r.id !== newRipple.id));
     }, 3000);
@@ -227,8 +220,21 @@ export default function DonationHub({ user, onLogout }) {
   const handlePaymentComplete = () => {
     setShowPayment(false);
     setShowImpact(true);
-    fetchCharities(); // Refresh charity data
+    fetchCharities();
     toast.success('Thank you for your donation! 💝');
+  };
+
+  // Map charity types to emojis
+  const getCharityIcon = (type) => {
+    switch(type) {
+      case 'emergency': return '🚨';
+      case 'healthcare': return '🏥';
+      case 'animals': return '🐾';
+      case 'water': return '💧';
+      case 'education': return '📚';
+      case 'women': return '👩';
+      default: return '💝';
+    }
   };
 
   return (
@@ -282,6 +288,14 @@ export default function DonationHub({ user, onLogout }) {
           </div>
           <div className="flex gap-3">
             <Button
+              onClick={() => navigate('/about')}
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              data-testid="about-btn"
+            >
+              ℹ️ About Us
+            </Button>
+            <Button
               onClick={() => navigate('/timeline')}
               variant="outline"
               className="bg-white/10 hover:bg-white/20 text-white border-white/20"
@@ -301,13 +315,13 @@ export default function DonationHub({ user, onLogout }) {
         </div>
 
         {/* Donation Panel */}
-        <div className="glass rounded-2xl p-6 max-w-2xl">
+        <div className="glass rounded-2xl p-6 max-w-4xl">
           <h2 className="text-2xl font-bold text-white mb-4" style={{ fontFamily: 'Space Grotesk' }}>
             Make a Ripple 💧
           </h2>
           
           <div className="space-y-4">
-            {/* Charity Selection */}
+            {/* Charity Selection - 3 columns for 6 items */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
                 Choose a Cause
@@ -325,9 +339,7 @@ export default function DonationHub({ user, onLogout }) {
                     data-testid={`charity-${charity.charity_type}-btn`}
                   >
                     <div className="text-2xl mb-2">
-                      {charity.visual_type === 'tree' && '🌳'}
-                      {charity.visual_type === 'butterfly' && '🦋'}
-                      {charity.visual_type === 'books' && '📚'}
+                      {getCharityIcon(charity.charity_type)}
                     </div>
                     <div className="text-white font-medium text-sm">{charity.name}</div>
                     <div className="text-gray-300 text-xs mt-1">

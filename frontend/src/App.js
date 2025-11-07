@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
-import "@/App.css";
-import RegistrationSpace from "@/components/RegistrationSpace";
-import DonationHub from "@/components/DonationHub";
-import TimelineGarden from "@/components/TimelineGarden";
-import { Toaster } from "@/components/ui/sonner";
+import "./App.css";
+import RegistrationSpace from "./components/RegistrationSpace";
+import DonationHub from "./components/DonationHub";
+import TimelineGarden from "./components/TimelineGarden";
+import AboutUs from "./components/AboutUs";
+import { Toaster } from "sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -15,7 +16,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize charities on first load
     const initCharities = async () => {
       try {
         await axios.post(`${API}/init-charities`);
@@ -24,8 +24,7 @@ function App() {
       }
     };
 
-    // Check for existing user in localStorage
-    const storedUser = localStorage.getItem("hopeorb_user");
+    const storedUser = localStorage.getItem("microspark_user");
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     }
@@ -36,12 +35,12 @@ function App() {
 
   const handleUserRegistered = (user) => {
     setCurrentUser(user);
-    localStorage.setItem("hopeorb_user", JSON.stringify(user));
+    localStorage.setItem("microspark_user", JSON.stringify(user));
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem("hopeorb_user");
+    localStorage.removeItem("microspark_user");
   };
 
   if (loading) {
@@ -86,6 +85,10 @@ function App() {
                 <Navigate to="/" replace />
               )
             }
+          />
+          <Route
+            path="/about"
+            element={<AboutUs user={currentUser} onLogout={handleLogout} />}
           />
         </Routes>
       </BrowserRouter>

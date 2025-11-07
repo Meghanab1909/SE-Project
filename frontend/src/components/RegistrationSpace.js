@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, MeshDistortMaterial, Float, Text3D, Center } from '@react-three/drei';
+import { OrbitControls, Sphere, MeshDistortMaterial, Float } from '@react-three/drei';
 import * as faceapi from 'face-api.js';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -160,7 +160,7 @@ export default function RegistrationSpace({ onUserRegistered }) {
         emotion
       });
 
-      toast.success('Welcome to HopeOrb! 🌟');
+      toast.success('Welcome to MicroSpark! 🌟');
       onUserRegistered(response.data);
     } catch (error) {
       toast.error('Registration failed. Please try again.');
@@ -196,7 +196,7 @@ export default function RegistrationSpace({ onUserRegistered }) {
           <div className="glass rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-8">
               <h1 className="text-5xl font-bold text-white mb-3" style={{ fontFamily: 'Space Grotesk' }}>
-                Enter HopeOrb
+                Enter MicroSpark
               </h1>
               <p className="text-gray-300 text-lg">
                 Step into the immersive world of giving
@@ -268,7 +268,7 @@ export default function RegistrationSpace({ onUserRegistered }) {
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-6 rounded-xl shadow-lg text-lg"
                 data-testid="enter-hopeorb-btn"
               >
-                {isSubmitting ? 'Entering...' : 'Enter HopeOrb ✨'}
+                {isSubmitting ? 'Entering...' : 'Enter MicroSpark ✨'}
               </Button>
             </form>
           </div>
