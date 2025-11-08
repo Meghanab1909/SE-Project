@@ -1,0 +1,9 @@
+{
+  "all": true,
+  "include": ["server.js"],
+  "exclude": ["test", "node_modules", "coverage"],
+  "reporter": ["text-summary", "html"],
+  "extension": [".js"],
+  "sourceMap": true,
+  "instrument": true
+}

@@ -23,17 +23,21 @@ async function connectDB() {
     await initializeDemoAccounts();
 
     // ✅ Start server only after DB is ready
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Bank server running on port ${PORT}`);
-      console.log(`📍 API endpoint: http://localhost:${PORT}\n`);
-    });
+    if (process.env.NODE_ENV !== "test") {
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+        console.log(`🚀 Bank server running on port ${PORT}`);
+        console.log(`📍 API endpoint: http://localhost:${PORT}\n`);
+      });
+  }
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
   }
 }
 
-connectDB();
+if (process.env.NODE_ENV !== "test") {
+  connectDB();
+}
 
 // ✅ Initialize the 4 specific UPI accounts
 async function initializeDemoAccounts() {
@@ -170,125 +174,6 @@ app.post("/api/verify-upi", async (req, res) => {
   }
 });
 
-app.post("/api/demo/complete-payment", async (req, res) => {
-  const { upiId, pin, amount, orderId, donationId } = req.body;
-
-  console.log("💳 Incoming Payment Request →", { upiId, pin, amount, orderId, donationId });
-
-  if (!upiId || !pin || !amount) {
-    return res.status(400).json({
-      status: "FAILURE",
-      error: "Missing required fields",
-    });
-  }
-
-  try {
-    const accounts = db.collection("accounts");
-
-    // ✅ Normalize input (avoid case/whitespace mismatch)
-    const cleanUpi = upiId.trim().toLowerCase();
-    const merchantUpi = "merchant@bank";
-
-    // 🔍 Lookup user
-    const user = await accounts.findOne({ upiId: cleanUpi });
-    if (!user) {
-      console.log("❌ No account found for", cleanUpi);
-      return res.status(404).json({ status: "FAILURE", error: "UPI ID not found" });
-    }
-
-    // 🔐 Validate PIN
-    if (user.pin !== parseInt(pin)) {
-      console.log("❌ Invalid PIN for", cleanUpi);
-      return res.status(401).json({ status: "FAILURE", error: "Invalid UPI PIN" });
-    }
-
-    // 💰 Check funds
-    const amt = Number(amount);
-    if (isNaN(amt) || amt <= 0) {
-      return res.status(400).json({ status: "FAILURE", error: "Invalid amount" });
-    }
-    if (user.balance < amt) {
-      console.log("❌ Insufficient balance:", user.balance, "<", amt);
-      return res.status(400).json({
-        status: "FAILURE",
-        error: "Insufficient balance",
-        currentBalance: user.balance,
-      });
-    }
-
-    // ✅ Deduct amount
-    const newBalance = user.balance - amt;
-    const txnId = "TXN" + Date.now();
-
-    const deductResult = await accounts.updateOne(
-      { upiId: cleanUpi },
-      { $set: { balance: newBalance } }
-    );
-
-    console.log(
-      `💾 Deduct update → Matched: ${deductResult.matchedCount}, Modified: ${deductResult.modifiedCount}`
-    );
-
-    if (deductResult.modifiedCount === 0) {
-      console.error("❌ Deduction failed — no document modified for", cleanUpi);
-      return res.status(500).json({
-        status: "FAILURE",
-        error: "Balance update failed",
-      });
-    }
-
-    // ✅ Credit merchant
-    const creditResult = await accounts.updateOne(
-      { upiId: merchantUpi },
-      { $inc: { balance: amt } }
-    );
-
-    console.log(
-      `💾 Merchant credit → Matched: ${creditResult.matchedCount}, Modified: ${creditResult.modifiedCount}`
-    );
-
-    if (creditResult.modifiedCount === 0) {
-      console.error("❌ Merchant credit failed, rolling back...");
-      // Rollback user balance if merchant credit failed
-      await accounts.updateOne({ upiId: cleanUpi }, { $set: { balance: user.balance } });
-      return res.status(500).json({
-        status: "FAILURE",
-        error: "Merchant credit failed — transaction rolled back",
-      });
-    }
-
-    // 🧾 Record transaction
-    const transactions = db.collection("transactions");
-    await transactions.insertOne({
-      txnId,
-      fromUpi: cleanUpi,
-      fromName: user.name,
-      toUpi: merchantUpi,
-      amount: amt,
-      orderId: orderId || null,
-      donationId: donationId || null,
-      status: "SUCCESS",
-      timestamp: new Date(),
-    });
-
-    console.log(`✅ Transaction complete: ₹${amt} from ${cleanUpi} → ${merchantUpi}`);
-
-    return res.json({
-      status: "SUCCESS",
-      txnId,
-      senderBalance: newBalance,
-      amount: amt,
-      senderName: user.name,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("❌ Payment processing error:", err);
-    return res.status(500).json({
-      status: "FAILURE",
-      error: "Server error while processing payment",
-    });
-  }
-});
 
 // ✅ Get user balance
 app.post("/api/get-balance", async (req, res) => {
@@ -315,13 +200,13 @@ app.post("/api/get-balance", async (req, res) => {
 });
 
 // ✅ Get transaction history
-app.get("/api/transactions/:upiId", async (req, res) => {
-  const { upiId } = req.params;
+app.get("/api/transactions/user/:userId", async (req, res) => {
+  const { userId } = req.params;
 
   try {
     const transactions = db.collection("transactions");
     const txnHistory = await transactions
-      .find({ $or: [{ fromUpi: upiId }, { toUpi: upiId }] })
+      .find({ userId: userId })
       .sort({ timestamp: -1 })
       .limit(20)
       .toArray();
@@ -331,7 +216,133 @@ app.get("/api/transactions/:upiId", async (req, res) => {
       transactions: txnHistory
     });
   } catch (err) {
-    console.error("❌ Transaction history error:", err);
+    console.error("❌ Transaction history (userId) error:", err);
     return res.status(500).json({ status: "FAILURE", error: "Server error" });
   }
 });
+
+
+app.post("/api/payment/verify", async (req, res) => {
+  const { donation_id, payment_id, upi_id, pin, amount } = req.body;
+
+  console.log("💳 Verifying payment via /payment/verify →", {
+    upi_id,
+    pin,
+    amount,
+    donation_id,
+    payment_id,
+  });
+
+  try {
+    const accounts = db.collection("accounts");
+    const transactions = db.collection("transactions");
+
+    const cleanUpi = upi_id.trim().toLowerCase();
+    const merchantUpi = "merchant@bank";
+    const amt = Number(amount) || 100; // fallback demo amount
+
+    console.log("💰 Received amount:", amount, "→ parsed:", Number(amount));
+
+    // 🔍 Find user
+    const user = await accounts.findOne({ upiId: cleanUpi });
+    if (!user) {
+      return res.json({ success: false, message: "UPI ID not found" });
+    }
+
+    // 🔐 Verify PIN
+    if (user.pin !== parseInt(pin)) {
+      return res.json({ success: false, message: "Invalid UPI PIN" });
+    }
+
+    // 💰 Check balance
+    if (user.balance < amt) {
+      return res.json({
+        success: false,
+        message: "Insufficient balance",
+        currentBalance: user.balance,
+      });
+    }
+
+    // ✅ Deduct + credit
+    const newBalance = user.balance - amt;
+    const txnId = "TXN" + Date.now();
+
+    await accounts.updateOne({ upiId: cleanUpi }, { $set: { balance: newBalance } });
+    await accounts.updateOne({ upiId: merchantUpi }, { $inc: { balance: amt } });
+
+    const userId = user?.userId || null
+
+    // 🧾 Log transaction
+    await transactions.insertOne({
+      txnId,
+      fromUpi: cleanUpi,
+      toUpi: merchantUpi,
+      amount: amt,
+      orderId: payment_id || null,
+      donationId: donation_id || null,
+      userId,
+      status: "SUCCESS",
+      timestamp: new Date(),
+    });
+
+    let fundName = "fund@upi"
+
+    if (donation_id) {
+      try {
+        const donationClient = new MongoClient(process.env.MONGO_URL || "mongodb://127.0.0.1:27017");
+        await donationClient.connect();
+        const hopeorbDB = donationClient.db("hopeorb_db");
+
+        const donations = hopeorbDB.collection("donations");
+        const charities = hopeorbDB.collection("charities");
+
+        const donation = await donations.findOne({ id: donation_id });
+        if (donation) {
+          const charity = await charities.findOne({ id: donation.charity_id });
+          if (charity) {
+            fundName = charity.name; // ✅ use the fund’s name for logging
+
+            await charities.updateOne(
+              { id: donation.charity_id },
+              { $inc: { current_amount: amt } }
+            );
+            await donations.updateOne(
+              { id: donation_id },
+              { $set: { status: "completed", txn_id: txnId, updated_at: new Date() } }
+            );
+            console.log(`💰 Updated charity: ${charity.name} (+₹${amt})`);
+          } else {
+            console.warn("⚠️ Charity not found for donation:", donation.charity_id);
+          }
+        } else {
+          console.warn("⚠️ Donation not found in hopeorb_db:", donation_id);
+        }
+
+        await donationClient.close();
+      } catch (updateErr) {
+        console.error("❌ Error updating charity in hopeorb_db:", updateErr);
+      }
+    }
+
+    // ✅ Use fundName in transaction log
+    console.log(`✅ Transaction complete: ₹${amt} from ${cleanUpi} → ${fundName}`);
+
+    console.log(`✅ Payment verified: ₹${amt} deducted from ${cleanUpi}`);
+
+    return res.json({
+      success: true,
+      txnId,
+      message: "Payment successful",
+      senderBalance: newBalance,
+    });
+  } catch (err) {
+    console.error("❌ Error in /payment/verify:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during payment verification",
+    });
+  }
+});
+
+export { connectDB, client };
+export default app;
