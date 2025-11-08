@@ -79,9 +79,10 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
   const [paymentData, setPaymentData] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [upiId, setUpiId] = useState('demo@ybl');
-  const [pin, setPin] = useState('1234');
+  const [upiId, setUpiId] = useState('');
+  const [pin, setPin] = useState('');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const storedUser = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     generatePayment();
@@ -93,7 +94,10 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
         donation_id: donation.id,
         amount: donation.amount
       });
-      setPaymentData(response.data);
+      setPaymentData({
+      ...response.data,
+      amount: donation.amount, // ✅ preserve amount in paymentData
+    });
     } catch (error) {
       toast.error('Failed to generate payment');
       console.error('Payment generation error:', error);
@@ -108,11 +112,12 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
 
     setIsVerifying(true);
     try {
-      const response = await axios.post(`${API}/payment/verify`, {
+      const response = await axios.post("http://localhost:5000/api/payment/verify", {
         donation_id: donation.id,
         payment_id: paymentData.payment_id,
         upi_id: upiId,
-        pin: pin
+        pin: pin,
+        amount: paymentData.amount
       });
       
       if (response.data.success) {
@@ -124,8 +129,8 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
         toast.error(response.data.message || 'Payment failed');
       }
     } catch (error) {
-      toast.error('Payment verification failed');
       console.error('Payment verification error:', error);
+      toast.error('Payment verification failed');
     } finally {
       setIsVerifying(false);
     }
@@ -215,10 +220,6 @@ export default function PaymentCube({ donation, onClose, onComplete }) {
                       )}
                     </div>
                   )}
-
-                  <div className="text-gray-400 text-xs text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                    💳 Demo Account: UPI: demo@ybl | PIN: 1234 | Balance: ₹10,000
-                  </div>
 
                   <Button
                     onClick={() => setShowPaymentForm(true)}

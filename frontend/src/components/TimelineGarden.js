@@ -125,9 +125,11 @@ export default function TimelineGarden({ user, onLogout }) {
   }, []);
 
   const fetchTimeline = async () => {
+    const userId = user?.id;
     try {
-      const response = await axios.get(`${API}/user/${user.id}/timeline`);
-      setTimeline(response.data);
+      const response = await axios.get(`http://localhost:5000/api/transactions/user/${userId}`);
+      setTimeline(response.data.transactions || []);
+      console.log(response.data.transactions);
     } catch (error) {
       console.error('Error fetching timeline:', error);
     } finally {
@@ -191,14 +193,6 @@ export default function TimelineGarden({ user, onLogout }) {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={() => navigate('/about')}
-              variant="outline"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-              data-testid="about-btn"
-            >
-              ℹ️ About
-            </Button>
             <Button
               onClick={() => navigate('/hub')}
               variant="outline"
